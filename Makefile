@@ -1,5 +1,7 @@
 .SILENT:
 
+BDM ?= 1
+
 EE_OBJ_DIR = obj/
 EE_INC_DIR = include/
 EE_BIN_DIR = bin/
@@ -10,6 +12,7 @@ EE_BIN = $(EE_BIN_DIR)SMS.elf
 EE_INCS    = -I$(EE_INC_DIR) -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -I$(PS2SDK)/ports/include -I$(PS2SDK)/sbv/include
 EE_LDFLAGS = -L$(PS2SDK)/sbv/lib -L$(PS2SDK)/ee/lib -L$(PS2SDK)/ports/lib -L$(EE_SRC_DIR)/lzma2
 EE_LIBS    = -lpatches -lc -lkernel -lmf
+EE_CFLAGS := -Dmemset=mips_memset -Dmemcpy=mips_memcpy -D_EE -O2 -G8192 -mgpopt -Wall -mno-check-zero-division
 
 EE_OBJS  = main.o SMS_OS.o SMS_GS_0.o SMS_GS_1.o SMS_GS_2.o SMS_Timer.o           \
            SMS_MP123Core.o SMS_FileContext.o  SMS_H263.o                          \
@@ -36,6 +39,17 @@ EE_OBJS  = main.o SMS_OS.o SMS_GS_0.o SMS_GS_1.o SMS_GS_2.o SMS_Timer.o         
            SMS_JPEGData.o SMS_JPEG.o SMS_Rescale.o SMS_MPEGInit.o                 \
            lzma2.o xz_crc32.o xz_dec_lzma2.o xz_dec_stream.o
 
+ifeq ($(BDM),1)
+  IRX_DIR = irx/
+  IOP_OBJS = bdm_irx.o bdmfs_fatfs_irx.o usbd_irx.o usbmass_bd_irx.o sio2man_irx.o \
+             mx4sio_bd_irx.o mcman_irx.o mcserv_irx.o   \
+             padman_irx.o iomanx_irx.o
+# filexio_irx.o -lfileXio
+  EE_LIBS += -lmc -lpadx
+  EE_OBJS += $(IOP_OBJS)
+  EE_CFLAGS += -DBDM
+endif
+
 EE_OBJS := $(EE_OBJS:%=$(EE_OBJ_DIR)%)
 
 all: $(EE_OBJ_DIR) $(EE_BIN_DIR) $(EE_BIN)
@@ -46,6 +60,15 @@ $(EE_OBJ_DIR):
 
 $(EE_BIN_DIR):
 	@$(MKDIR) -p $(EE_BIN_DIR)
+
+vpath %.irx $(IRX_DIR)
+
+$(EE_OBJ_DIR)%_irx.c: %.irx
+	bin2c $< $@ $(*F)_irx
+	@sed 's/aligned(16)/aligned(16), section(\"data\")/' -i $@
+
+$(EE_OBJ_DIR)%.o : $(EE_OBJ_DIR)%.c
+	$(EE_CC) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
 
 $(EE_OBJ_DIR)%.o : $(EE_SRC_DIR)%.c
 	$(EE_CC) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
@@ -84,5 +107,3 @@ clean:
 	@rm -f -r $(EE_BIN_DIR) $(EE_OBJ_DIR)
 
 include $(PS2SDK)/Defs.make
-
-EE_CFLAGS := -Dmemset=mips_memset -Dmemcpy=mips_memcpy -D_EE -O2 -G8192 -mgpopt -Wall -mno-check-zero-division

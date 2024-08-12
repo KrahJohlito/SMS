@@ -46,11 +46,43 @@ extern void* _gp;
 
 unsigned int g_IOPFlags;
 
+#ifdef BDM
+//#include <fileXio_rpc.h>
+//extern unsigned char filexio_irx [];
+//extern unsigned int size_filexio_irx;
+
+extern unsigned char bdm_irx        [];
+extern unsigned char bdmfs_fatfs_irx[];
+extern unsigned char usbd_irx       [];
+extern unsigned char usbmass_bd_irx [];
+extern unsigned char mx4sio_bd_irx  [];
+
+extern unsigned char sio2man_irx [];
+extern unsigned char iomanx_irx  [];
+extern unsigned char mcman_irx   [];
+extern unsigned char mcserv_irx  [];
+extern unsigned char padman_irx  [];
+
+extern unsigned int size_bdm_irx;
+extern unsigned int size_bdmfs_fatfs_irx;
+extern unsigned int size_usbd_irx;
+extern unsigned int size_usbmass_bd_irx;
+extern unsigned int size_mx4sio_bd_irx;
+
+extern unsigned int size_sio2man_irx;
+extern unsigned int size_iomanx_irx;
+extern unsigned int size_mcman_irx;
+extern unsigned int size_mcserv_irx;
+extern unsigned int size_padman_irx;
+
+extern unsigned int g_MassFlags;
+#else
 static char s_pSIO2MAN[] __attribute__(   (  section( ".data" ), aligned( 1 )  )   ) = "rom0:SIO2MAN";
 static char s_pPADMAN [] __attribute__(   (  section( ".data" ), aligned( 1 )  )   ) = "rom0:PADMAN";
 static char s_pMCMAN  [] __attribute__(   (  section( ".data" ), aligned( 1 )  )   ) = "rom0:MCMAN";
 static char s_pMCSERV [] __attribute__(   (  section( ".data" ), aligned( 1 )  )   ) = "rom0:MCSERV";
 static char s_pUSBD   [] __attribute__(   (  section( ".data" ), aligned( 1 )  )   ) = "USBD.IRX";
+#endif
 
 static char s_HDDArgs[] __attribute__(   (  section( ".data" ), aligned( 1 )  )   ) = {
  '-', 'o', '\x00', '2',      '\x00',
@@ -154,8 +186,6 @@ int SifExecDecompModuleBuffer(void *ptr, u32 size, u32 arg_len, const char *args
 
 void SMS_IOPReset ( int afExit ) {
 
- static const char* lpModules[ 4 ] = { s_pSIO2MAN, s_pPADMAN, s_pMCMAN, s_pMCSERV };
-
  int i;
 #if NO_DEBUG
  SifInitRpc ( 0 );
@@ -176,6 +206,7 @@ void SMS_IOPReset ( int afExit ) {
  _slib_cur_exp_lib_list.head = NULL;
  sbv_patch_enable_lmb           ();
  sbv_patch_disable_prefix_check ();
+ sbv_patch_fileio               ();
 
  //while(!SifIopReset(s_iop_image, 0)){};
 
@@ -210,9 +241,26 @@ void SMS_IOPReset ( int afExit ) {
 
  SifExecModuleBuffer ( &g_DataBuffer[ SMS_SMSUTILS_OFFSET ], SMS_SMSUTILS_SIZE, 0, NULL, &i );
 
+#ifdef BDM
+ SifExecModuleBuffer ( &iomanx_irx, size_iomanx_irx, 0, NULL, &i );
+ /*SifExecModuleBuffer ( &filexio_irx, size_filexio_irx, 0, NULL, &i );
+ fileXioInit();*/
+
+ SifExecModuleBuffer ( &bdm_irx, size_bdm_irx, 0, NULL, &i );
+ SifExecModuleBuffer ( &bdmfs_fatfs_irx, size_bdmfs_fatfs_irx, 0, NULL, &i );
+
+ if ( !afExit ) SifExecModuleBuffer ( &sio2man_irx, size_sio2man_irx, 0, NULL, &i );
+
+ SifExecModuleBuffer ( &mcman_irx, size_mcman_irx, 0, NULL, &i );
+ SifExecModuleBuffer ( &mcserv_irx, size_mcserv_irx, 0, NULL, &i );
+ SifExecModuleBuffer ( &padman_irx, size_padman_irx, 0, NULL, &i );
+#else
+ static const char* lpModules[ 4 ] = { s_pSIO2MAN, s_pPADMAN, s_pMCMAN, s_pMCSERV };
+
  if ( !afExit ) SifExecModuleBuffer ( &g_DataBuffer[ SMS_SIO2MAN_OFFSET ], SMS_SIO2MAN_SIZE,  0, NULL, &i );
 
  for ( i = 1 - afExit; i < 4; ++i ) SifLoadModule ( lpModules[ i ], 0, NULL );
+#endif
 
  SIF_BindRPC ( &s_SMSUClt, SMSUTILS_RPC_ID );
 
@@ -307,9 +355,50 @@ int SMS_IOPStartNet ( int afStatus ) {
 
 }  /* end SMS_IOPStartNet */
 
+#ifdef BDM
+static int checkConnectedMassDev ( int afUnit ) {
+
+    int fd;
+    char path[32];
+
+    snprintf(path, sizeof(path), "%s%d:", g_pUSB, afUnit);
+    fd = fioDopen(path);
+    if (fd >= 0) {
+        fioDclose(fd);
+        return 1;
+    }
+
+    return 0;
+}
+#endif
+
 int SMS_IOPStartUSB ( int afStatus ) {
 
  int  i;
+
+#ifdef BDM
+ int ret;
+
+ SifExecModuleBuffer ( &usbd_irx, size_usbd_irx, 0, NULL, &i );
+ g_IOPFlags |= SMS_IOPF_USB;
+
+ SifExecModuleBuffer ( &usbmass_bd_irx, size_usbmass_bd_irx, 0, NULL, &i );
+ g_IOPFlags |= SMS_IOPF_UMS;
+
+ SifExecModuleBuffer ( &mx4sio_bd_irx, size_mx4sio_bd_irx, 0, NULL, &i ); //comment to stop polling
+
+ // give the modules a few seconds to load
+ for ( i = 0; i < 5; i++ ) {
+  ret = 0x01000000;
+  while ( ret-- ) asm ( "nop\nnop\nnop\nnop" );
+ }
+
+ // check for connected devices.. hot plugging isn't going to work
+ if (  checkConnectedMassDev ( 0 )  ) g_MassFlags |= 0x00000002;
+ if (  checkConnectedMassDev ( 1 )  ) g_MassFlags |= 0x00000800;
+ if (  checkConnectedMassDev ( 2 )  ) g_MassFlags |= 0x00002000;
+ if (  checkConnectedMassDev ( 3 )  ) g_MassFlags |= 0x00008000;
+#else
  char lBuf[ 64 ];
 
  sprintf ( lBuf, g_pFmt3, g_pMC0SMS, g_SlashStr, s_pUSBD );
@@ -342,6 +431,7 @@ int SMS_IOPStartUSB ( int afStatus ) {
   *( int* )g_pUSB = 0x20736D75;
  }  /* end if */
 
+#endif
  return g_IOPFlags & SMS_IOPF_USB;
 
 }  /* end SMS_IOPStartUSB */

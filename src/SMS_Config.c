@@ -261,6 +261,7 @@ int SMS_LoadConfig ( void  ) {
 
  MC_GetInfo ( g_MCSlot, 0, &lRes, &lRes, &lRes );
  MC_Sync ( &lRes );
+ printf("lRes=%d!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n", lRes);
 
  if ( lRes > -2 ) {
 
@@ -324,8 +325,15 @@ int SMS_SaveConfig ( void ) {
 
  MC_GetInfo ( g_MCSlot, 0, &lRes, &lRes, &lRes );
  MC_Sync ( &lRes );
-
+ printf("lRes=%d!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n", lRes);
+#ifdef BDM
+ if ( lRes > -5 ) { /* returns a value of -4 first attempt then 0 on second implying its undetected but then the same card..
+                       weird SMS_LoadConfig() is fine.. -1 then 0 (new card, same card)..(its called twice in guiinit)..
+                       _saveipc_handler() in SMS_GUIMenuSMS.c & SMS_SaveConfig() in SMS_Config.c have the same result.
+                       calling MC_GetInfo() & MC_Sync() outside of SMS_LoadConfig() returns -4 on first attempt. */
+#else
  if ( lRes > -2 ) {
+#endif
 
   SMS_MCTable lDir __attribute__(   (  aligned( 64 )  )   );
 

@@ -227,7 +227,11 @@ void SMS_FileDirInit ( char* apPath ) {
  char*         lpPtr;
  SMS_ListNode* lpNode;
 
+#ifdef BDM
+ if (  g_CMedia == 0 && ( g_IOPFlags & SMS_IOPF_UMS )  ) g_pUSB[ 4 ] = g_CUnit + '0';
+#else
  if (  g_CMedia == 0 && ( g_IOPFlags & SMS_IOPF_UMS )  ) g_pUSB[ 3 ] = g_CUnit + '0';
+#endif
 
  GUI_Status ( STR_READING_MEDIA.m_pStr );
 
@@ -239,7 +243,14 @@ void SMS_FileDirInit ( char* apPath ) {
 
   strcpy ( g_CWD, g_pDevName[ g_CMedia ] );
 
+/*#ifdef BDM
+  if ( g_CMedia == 0 ) *( unsigned int* )&g_CWD[ 5 ] = 0x0000003A;
+  else *( unsigned int* )&g_CWD[ 4 ] = 0x0000003A;
+#else
   *( unsigned int* )&g_CWD[ 4 ] = 0x0000003A;
+#endif*/
+
+  strcat (g_CWD, ":" );
 
   if ( g_CMedia == 2 ) {
 

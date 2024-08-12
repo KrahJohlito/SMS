@@ -10,6 +10,7 @@
 */
 #include "SMS_FileContext.h"
 #include "SMS_Sounds.h"
+#include "SMS_GUI.h"
 
 #include <malloc.h>
 #include <string.h>
@@ -1435,7 +1436,10 @@ static int STIO_Stream ( FileContext* apCtx, unsigned int aStartPos, unsigned in
   ) retVal = lnRead;
 #else  /* PS2 */
   fioLseek ( lpPriv -> m_FD, apCtx -> m_CurPos, SEEK_SET );
-  retVal = lnRead = fioRead ( lpPriv -> m_FD, apCtx -> m_pBuff[ 0 ], apCtx -> m_BufSize );
+  printf ( "STIO_Stream->read()\n" );
+  printf ( "fp=%s fs=%d\n", apCtx->m_pPath, apCtx->m_Size );
+  retVal = lnRead = fioRead ( lpPriv -> m_FD, apCtx -> m_pBuff[ 0 ], apCtx -> m_BufSize ); //mx stuck here
+  printf ( "STIO_Stream->read() finshed\n" );
 #endif  /* _WIN32 */
   apCtx -> m_pPos = apCtx -> m_pBuff[ 0 ];
   apCtx -> m_pEnd = apCtx -> m_pPos + retVal;

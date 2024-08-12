@@ -236,7 +236,11 @@ static int GUIDevMenu_HandleMount ( GUIDevMenu* apMenu, unsigned int aMount, u64
 
   if ( !lDevID ) {
    unsigned char lUnitID = ( aMsg >> 56 ) & 15;
+#ifdef BDM
+   lDevName[ 4 ]      = lUnitID + '0';
+#else
    lDevName[ 3 ]      = lUnitID + '0';
+#endif
    lpItem -> m_UnitID = lUnitID;
   }  /* end if */
 

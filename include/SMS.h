@@ -19,6 +19,8 @@ typedef unsigned int size_t;
 
 #include <tamtypes.h>
 
+#include <stdio.h>
+
 extern unsigned char* g_pSPRTop;
 extern void*          g_pSynthBuffer;
 extern int            g_XShift;

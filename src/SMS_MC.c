@@ -9,6 +9,7 @@
 # Review ps2sdk README & LICENSE files for further details.
 #
 */
+#ifndef BDM
 #include "SMS_MC.h"
 #include "SMS_SIF.h"
 
@@ -313,3 +314,4 @@ int MC_SeekS ( int aFD, int anOffset, int anOrigin ) {
  return retVal;
 
 }  /* end MC_SeekS */
+#endif

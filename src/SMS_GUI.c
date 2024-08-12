@@ -89,6 +89,10 @@ static unsigned char s_PadBuf0[  256 ] __attribute__(   (  aligned( 64 ), sectio
        unsigned char g_PadBuf1[  256 ] __attribute__(   (  aligned( 64 ), section( ".data"  )  )   );
 static unsigned char s_Stack  [ 4096 ] __attribute__(   (  aligned( 16 ), section( ".data"  )  )   );
 
+#ifdef BDM
+unsigned int g_MassFlags;
+#endif
+
 static void ( *QueryPad ) ( void );
 
 static void QueryPad0 ( void );
@@ -365,6 +369,10 @@ static int _gui_thread ( void* apParam ) {
 
    DiskType lDiskType;
 
+#ifdef BDM
+   s_DevFlags |= g_MassFlags;
+#endif
+
    if ( s_DevFlags & DEVF_NETWORK ) {
 
     s_DevFlags &= ~DEVF_NETWORK;
@@ -379,28 +387,36 @@ static int _gui_thread ( void* apParam ) {
 
     s_Event    |= (  GUI_MSG_MOUNT_BIT | GUI_MSG_USB | ( 0LL << 56 )  );
     s_DevFlags &= ~DEVF_USB_CONNECT_0;
-
+#ifdef BDM
+    g_MassFlags &= ~DEVF_USB_CONNECT_0;
+#endif
     goto raiseEvent;
 
    } else if ( s_DevFlags & DEVF_USB_CONNECT_1 ) {
 
     s_Event    |= (  GUI_MSG_MOUNT_BIT | GUI_MSG_USB | ( 1LL << 56 )  );
     s_DevFlags &= ~DEVF_USB_CONNECT_1;
-
+#ifdef BDM
+    g_MassFlags &= ~DEVF_USB_CONNECT_1;
+#endif
     goto raiseEvent;
 
    } else if ( s_DevFlags & DEVF_USB_CONNECT_2 ) {
 
     s_Event    |= (  GUI_MSG_MOUNT_BIT | GUI_MSG_USB | ( 2LL << 56 )  );
     s_DevFlags &= ~DEVF_USB_CONNECT_2;
-
+#ifdef BDM
+    g_MassFlags &= ~DEVF_USB_CONNECT_2;
+#endif
     goto raiseEvent;
 
    } else if ( s_DevFlags & DEVF_USB_CONNECT_3 ) {
 
     s_Event    |= (  GUI_MSG_MOUNT_BIT | GUI_MSG_USB | ( 3LL << 56 )  );
     s_DevFlags &= ~DEVF_USB_CONNECT_3;
-
+#ifdef BDM
+    g_MassFlags &= ~DEVF_USB_CONNECT_3;
+#endif
     goto raiseEvent;
 
    } else if ( s_DevFlags & DEVF_USB_DISCONNECT_0 ) {

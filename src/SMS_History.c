@@ -35,7 +35,14 @@ void SMS_HistoryLoad ( void ) {
   unsigned short lSize;
   SMS_ListNode*  lpNode;
 
+#ifdef BDM
+  int x;
+  if (  MC_ReadS ( lFD, &lSize, 2 ) == 0  ) {
+   MC_Sync ( &x );
+  if ( x != 2 ) break;
+#else
   if (  MC_ReadS ( lFD, &lSize, 2 ) == 2  ) {
+#endif
    lpNode = SMS_ListPushBackBuf ( s_pHst, lSize + 1 );
    MC_ReadS (  lFD, _STR( lpNode ), lSize  );
    MC_ReadS (  lFD, &lpNode -> m_Param, 8  );
